@@ -4,6 +4,7 @@ const port = 3000;
 const userModel = require("./models/User")
 const bcrypt = require("bcrypt")
 const userRouter = require("./route/userRoutes")
+const productRouter = require("./route/productRoute")
 // Middleware
 app.use(express.json());
 require('dotenv').config();
@@ -13,6 +14,7 @@ require("./config/database");
 
 
 app.use("/api/user", userRouter)
+app.use("/api/product", productRouter)
 
 
 

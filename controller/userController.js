@@ -26,9 +26,9 @@ const register = async (req, res) => {
             password: hashedPassword
         });
         const saveData = await user.save()
-        res.json({ success: true, data: saveData })
+        return res.json({ success: true, data: saveData })
     } catch (error) {
-        res.json({ success: false, message: error.message })
+        return res.json({ success: false, message: error.message })
     }
 }
 
@@ -39,22 +39,36 @@ const login = async (req, res) => {
 
         const user = await userModel.findOne({ email })
         if (!user) {
-            res.status(400).json({ success: false, message: "invalid credentials" })
+            return res.status(400).json({ success: false, message: "invalid credentials" })
         }
 
         const comparePassword = await bcrypt.compare(password, user.password)
         if (!comparePassword) {
-            res.status(400).json({ success: false, message: "invalid credentials" })
+            return res.status(400).json({ success: false, message: "invalid credentials" })
         }
-        const token = jwt.sign({ userId: user._id, email: user.email }, process.env.SECRET_KEY, { expiresIn: "7d" })
-        res.json({
+        const token = jwt.sign({ userId: user._id, email: user.email, role: user.role }, process.env.SECRET_KEY, { expiresIn: "7d" })
+        return res.json({
             message: "Login successful",
             token,
-            user: { id: user._id, name: user.name, email: user.email }
+            user: { id: user._id, name: user.name, email: user.email, role: user.role }
         });
     } catch (error) {
-        res.status(500).json({ message: "Server error", error: error.message });
+        return res.status(500).json({ message: "Server error", error: error.message });
     }
 }
 
-module.exports = { register, login }
+
+
+const getProfile = async (req, res) => {
+    try {
+
+        const findUser = await userModel.findById({ _id: req.user.userId })
+        if (!findUser) {
+            return res.status(400).json({ success: false, message: "invaid user" })
+        }
+        return res.status(200).json({ success: true, data: findUser })
+    } catch (error) {
+        return res.status(500).json({ message: "Server error", error: error.message });
+    }
+}
+module.exports = { register, login, getProfile }
