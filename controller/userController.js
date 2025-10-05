@@ -48,6 +48,7 @@ const login = async (req, res) => {
         }
         const token = jwt.sign({ userId: user._id, email: user.email, role: user.role }, process.env.SECRET_KEY, { expiresIn: "7d" })
         return res.json({
+            success: true,
             message: "Login successful",
             token,
             user: { id: user._id, name: user.name, email: user.email, role: user.role }
@@ -71,4 +72,13 @@ const getProfile = async (req, res) => {
         return res.status(500).json({ message: "Server error", error: error.message });
     }
 }
-module.exports = { register, login, getProfile }
+
+const getAllProfile = async (req, res) => {
+    try {
+        const users = await userModel.find({});
+        return res.status(200).json({ success: true, data: users });
+    } catch (error) {
+        return res.status(500).json({ message: "Server error", error: error.message });
+    }
+}
+module.exports = { register, login, getProfile, getAllProfile }
