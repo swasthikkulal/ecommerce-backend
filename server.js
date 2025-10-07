@@ -7,10 +7,14 @@ const userRouter = require("./route/userRoutes")
 const productRouter = require("./route/productRoute")
 const orderRouter = require("./route/orderRoute")
 const addressRouter = require("./route/adressRoute")
+const path = require("path");
+
 const cors = require("cors")
 // Middleware
 app.use(cors())
 app.use(express.json());
+// Add this to serve uploaded images
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 require('dotenv').config();
 
 // Database connection
