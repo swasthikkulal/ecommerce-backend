@@ -1,6 +1,7 @@
 const Razorpay = require("razorpay");
 const Payment = require("../models/payment"); // ✅ Import payment model
 const mainOrderModel = require("../models/mainOrder")
+const { sendPurchaseMail } = require("../utils/mail");
 const userModel = require("../models/User")
 require("dotenv").config();
 
@@ -67,8 +68,10 @@ const createOrder = async (req, res) => {
             products: products,
             status: order.status, // 'created'
         });
-
+        const userEmail = req.user.email;
+        const productName = products.map(p => p.name).join(", ");
         const savedPayment = await newPayment.save();
+        await sendPurchaseMail(userEmail, newPayment.receipt, amount);
 
         // ✅ Return both Razorpay order and DB _id
         res.json({

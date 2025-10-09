@@ -20,7 +20,7 @@ require('dotenv').config();
 // Database connection
 require("./config/database");
 
-
+// Routes
 app.use("/api/user", userRouter)
 app.use("/api/admin", userRouter)
 app.use("/api/product", productRouter)
@@ -31,8 +31,8 @@ app.use("/api/checkout", require("./route/mainorder"))
 app.use("/api/admin", require("./route/adminRoute"))
 app.use("/api/feedback", require("./route/feedback"))
 
-
-
+// Add Categories Routes
+app.use("/api/categories", require("./route/categories"));
 
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);

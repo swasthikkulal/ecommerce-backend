@@ -90,6 +90,19 @@ const deleteOrder = async (req, res) => {
     }
 }
 
+const deleteAllOrder = async (req, res) => {
+    try {
+        const deleteOrder = await orderModel.deleteMany({ userId: req.user.userId })
+        if ((!deleteOrder)) {
+            return res.json({ success: false, message: "deletion failed" })
+        }
+        console.log("all order deleted")
+        return res.json({ success: true, message: "all order deleted" })
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+
+}
 
 
 
@@ -97,4 +110,4 @@ const deleteOrder = async (req, res) => {
 
 
 
-module.exports = { createOrder, getOrder, getAllOrders, updateOrderStatus, deleteOrder }
+module.exports = { createOrder, getOrder, getAllOrders, updateOrderStatus, deleteOrder, deleteAllOrder };
