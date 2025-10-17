@@ -46,7 +46,7 @@ const createOrder = async (req, res) => {
     try {
         const { products } = req.body;
         const findUser = await mainOrderModel.find({ user: req.user.userId }).populate("products.productId")
-        console.log(findUser)
+        console.log(findUser, "finduser.......")
         const amount = products.reduce((total, p) => total + p.price * p.quantity, 0) * 100;
 
         const options = {
@@ -56,6 +56,7 @@ const createOrder = async (req, res) => {
         };
 
         const order = await razorpay.orders.create(options);
+        console.log("Razorpay order created:", order);
 
 
         // ✅ Save order info into DB

@@ -250,18 +250,101 @@ const deleteProduct = async (req, res) => {
 };
 
 // Get all products (keep existing)
+// const getProducts = async (req, res) => {
+//     try {
+//         const products = await Product.find({ isActive: true })
+//             .populate('category', 'name')
+//             .sort({ createdAt: -1 });
+
+//         res.json({
+//             success: true,
+//             data: products
+//         });
+//     } catch (error) {
+//         console.error("Error fetching products:", error);
+//         res.status(500).json({
+//             success: false,
+//             message: "Error fetching products",
+//             error: error.message
+//         });
+//     }
+// };
+
+// Get all products with search functionality
 const getProducts = async (req, res) => {
     try {
-        const products = await Product.find({ isActive: true })
+        const { search, category, minPrice, maxPrice, sortBy } = req.query;
+
+        console.log("🔍 Received query parameters:", req.query);
+
+        // Build filter object
+        let filter = { isActive: true };
+
+        // Search functionality - search in name and description
+        if (search && search.trim() !== '') {
+            const searchRegex = new RegExp(search.trim(), 'i'); // Case-insensitive
+            filter.$or = [
+                { name: searchRegex },
+                { description: searchRegex }
+            ];
+            console.log("🔍 Applied search filter:", filter.$or);
+        }
+
+        // Category filter (optional)
+        if (category && category !== 'all') {
+            filter.category = category;
+        }
+
+        // Price range filter (optional)
+        if (minPrice || maxPrice) {
+            filter.price = {};
+            if (minPrice) filter.price.$gte = parseFloat(minPrice);
+            if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
+        }
+
+        // Build sort object
+        let sort = { createdAt: -1 }; // Default sort by newest
+
+        if (sortBy) {
+            switch (sortBy) {
+                case 'name':
+                    sort = { name: 1 };
+                    break;
+                case 'price-low':
+                    sort = { price: 1 };
+                    break;
+                case 'price-high':
+                    sort = { price: -1 };
+                    break;
+                case 'newest':
+                    sort = { createdAt: -1 };
+                    break;
+                case 'oldest':
+                    sort = { createdAt: 1 };
+                    break;
+                default:
+                    sort = { createdAt: -1 };
+            }
+        }
+
+        console.log("📋 Final filter:", filter);
+        console.log("📊 Sort order:", sort);
+
+        const products = await Product.find(filter)
             .populate('category', 'name')
-            .sort({ createdAt: -1 });
+            .sort(sort);
+
+        console.log(`✅ Found ${products.length} products`);
 
         res.json({
             success: true,
-            data: products
+            data: products,
+            count: products.length,
+            searchQuery: search || '',
+            message: products.length === 0 && search ? `No products found for "${search}"` : `Found ${products.length} products`
         });
     } catch (error) {
-        console.error("Error fetching products:", error);
+        console.error("❌ Error fetching products:", error);
         res.status(500).json({
             success: false,
             message: "Error fetching products",

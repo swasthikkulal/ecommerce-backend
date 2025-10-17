@@ -9,6 +9,7 @@ const {
     getCategoriesWithProductCount,
     getProductsByCategory
 } = require('../controller/categoryController');
+const { upload } = require("../config/cloudinary");
 
 // If you don't have admin middleware yet, you can use simple auth or create it
 const auth = require('../middleware/authMiddleWare');
@@ -34,8 +35,8 @@ router.get('/:slug', getCategoryBySlug);
 router.get('/:slug/products', getProductsByCategory);
 
 // Admin routes - protect these with your admin middleware
-router.post('/', adminAuth, createCategory);
-router.put('/:id', adminAuth, updateCategory);
+router.post('/', adminAuth, upload.single('image'), createCategory);
+router.put('/:id', adminAuth, upload.single('image'), updateCategory);
 router.delete('/:id', adminAuth, deleteCategory);
 
 module.exports = router;

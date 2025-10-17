@@ -1,5 +1,6 @@
 const Category = require("../models/Category");
 const Product = require("../models/Product");
+const { cloudinary } = require("../config/cloudinary");
 
 // @desc    Get all categories
 // @route   GET /api/categories
@@ -56,52 +57,30 @@ const getCategoryBySlug = async (req, res) => {
     }
 };
 
-// @desc    Create new category
+// @desc    Create new category with image upload
 // @route   POST /api/categories
 // @access  Private/Admin
-// const createCategory = async (req, res) => {
-//     try {
-//         const category = new Category(req.body);
-//         await category.save();
-
-//         res.status(201).json({
-//             success: true,
-//             message: 'Category created successfully',
-//             data: category
-//         });
-//     } catch (error) {
-//         console.error('Error creating category:', error);
-
-//         if (error.code === 11000) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: 'Category name or slug already exists'
-//             });
-//         }
-
-//         if (error.name === 'ValidationError') {
-//             const messages = Object.values(error.errors).map(err => err.message);
-//             return res.status(400).json({
-//                 success: false,
-//                 message: 'Validation error',
-//                 errors: messages
-//             });
-//         }
-
-//         res.status(500).json({
-//             success: false,
-//             message: 'Server error while creating category',
-//             error: error.message
-//         });
-//     }
-// };
-// controller/categoryController.js
 const createCategory = async (req, res) => {
     try {
+        const { name, description, displayOrder, parentCategory, isActive } = req.body;
+
+        // Check if file was uploaded
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: "Category image is required"
+            });
+        }
+
         // Handle empty parentCategory - convert empty string to null
         const categoryData = {
-            ...req.body,
-            parentCategory: req.body.parentCategory || null
+            name,
+            description,
+            displayOrder: parseInt(displayOrder) || 0,
+            parentCategory: parentCategory || null,
+            isActive: isActive === 'true' || isActive === true,
+            image: req.file.path, // Cloudinary URL
+            imagePublicId: req.file.filename // Cloudinary public_id for deletion
         };
 
         const category = new Category(categoryData);
@@ -114,6 +93,11 @@ const createCategory = async (req, res) => {
         });
     } catch (error) {
         console.error('Error creating category:', error);
+
+        // Delete uploaded image if category creation fails
+        if (req.file) {
+            await cloudinary.uploader.destroy(req.file.filename);
+        }
 
         if (error.code === 11000) {
             return res.status(400).json({
@@ -138,23 +122,47 @@ const createCategory = async (req, res) => {
         });
     }
 };
-// @desc    Update category
+
+// @desc    Update category with optional image upload
 // @route   PUT /api/categories/:id
 // @access  Private/Admin
 const updateCategory = async (req, res) => {
     try {
-        const category = await Category.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { new: true, runValidators: true }
-        );
+        const { name, description, displayOrder, parentCategory, isActive } = req.body;
 
-        if (!category) {
+        // Find existing category
+        const existingCategory = await Category.findById(req.params.id);
+        if (!existingCategory) {
             return res.status(404).json({
                 success: false,
                 message: 'Category not found'
             });
         }
+
+        const updateData = {
+            name,
+            description,
+            displayOrder: parseInt(displayOrder) || 0,
+            parentCategory: parentCategory || null,
+            isActive: isActive === 'true' || isActive === true,
+        };
+
+        // If new image is uploaded
+        if (req.file) {
+            // Delete old image from Cloudinary
+            if (existingCategory.imagePublicId) {
+                await cloudinary.uploader.destroy(existingCategory.imagePublicId);
+            }
+
+            updateData.image = req.file.path;
+            updateData.imagePublicId = req.file.filename;
+        }
+
+        const category = await Category.findByIdAndUpdate(
+            req.params.id,
+            updateData,
+            { new: true, runValidators: true }
+        );
 
         res.json({
             success: true,
@@ -164,10 +172,24 @@ const updateCategory = async (req, res) => {
     } catch (error) {
         console.error('Error updating category:', error);
 
+        // Delete uploaded image if update fails
+        if (req.file) {
+            await cloudinary.uploader.destroy(req.file.filename);
+        }
+
         if (error.code === 11000) {
             return res.status(400).json({
                 success: false,
                 message: 'Category name or slug already exists'
+            });
+        }
+
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(err => err.message);
+            return res.status(400).json({
+                success: false,
+                message: 'Validation error',
+                errors: messages
             });
         }
 
@@ -179,16 +201,12 @@ const updateCategory = async (req, res) => {
     }
 };
 
-// @desc    Delete category (soft delete)
+// @desc    Delete category (soft delete) with image cleanup
 // @route   DELETE /api/categories/:id
 // @access  Private/Admin
 const deleteCategory = async (req, res) => {
     try {
-        const category = await Category.findByIdAndUpdate(
-            req.params.id,
-            { isActive: false },
-            { new: true }
-        );
+        const category = await Category.findById(req.params.id);
 
         if (!category) {
             return res.status(404).json({
@@ -196,6 +214,14 @@ const deleteCategory = async (req, res) => {
                 message: 'Category not found'
             });
         }
+
+        // Delete image from Cloudinary
+        if (category.imagePublicId) {
+            await cloudinary.uploader.destroy(category.imagePublicId);
+        }
+
+        // Delete category from database
+        await Category.findByIdAndDelete(req.params.id);
 
         res.json({
             success: true,
