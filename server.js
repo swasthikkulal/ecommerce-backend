@@ -30,6 +30,9 @@ app.use("/api/payment", require("./route/paymentRoutes"));
 app.use("/api/checkout", require("./route/mainorder"))
 app.use("/api/admin", require("./route/adminRoute"))
 app.use("/api/feedback", require("./route/feedback"))
+app.use("/", (req, res)=>{
+    res.send("server is running");
+})
 
 // Add Categories Routes
 app.use("/api/categories", require("./route/categories"));
