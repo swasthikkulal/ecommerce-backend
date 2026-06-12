@@ -36,4 +36,4 @@ app.use("/api/categories", require("./route/categories"));
 
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
-})
+});
